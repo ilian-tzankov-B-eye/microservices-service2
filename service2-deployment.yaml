@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service2-data-processing
+  namespace: microservices-demo
+  labels:
+    app: service2-data-processing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service2-data-processing
+  template:
+    metadata:
+      labels:
+        app: service2-data-processing
+    spec:
+      containers:
+      - name: service2
+        image: microservices-demo/service2:latest
+        imagePullPolicy: Never  # Use local images only
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: SERVICE1_URL
+          value: "http://service1-user-management:8000"
+        - name: SERVICE1_TIMEOUT
+          value: "10"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service2-data-processing
+  namespace: microservices-demo
+  labels:
+    app: service2-data-processing
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8001
+    targetPort: 8001
+    protocol: TCP
+    name: http
+  selector:
+    app: service2-data-processing
+
